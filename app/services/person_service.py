@@ -1,89 +1,150 @@
 """Person service layer for business logic."""
 
-from typing import Dict, List, Optional
-from uuid import uuid4
+from typing import List, Optional
+from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.person import Person, PersonResponse, PersonUpdate
+from app.db.models import PersonDB
 
 
 class PersonService:
     """Service class to handle person-related business logic."""
     
-    def __init__(self):
-        """Initialize the service with in-memory storage."""
-        self._persons_db: Dict[str, dict] = {}
-    
-    def create_person(self, person: Person) -> PersonResponse:
+    async def create_person(self, db: AsyncSession, person: Person) -> PersonResponse:
         """Create a new person and return it with an ID.
         
         Args:
+            db: Database session
             person: Person data to create
             
         Returns:
             PersonResponse: Created person with generated ID
         """
-        person_id = str(uuid4())
-        person_data = person.model_dump()
-        person_data["id"] = person_id
-        self._persons_db[person_id] = person_data
-        return PersonResponse(**person_data)
+        db_person = PersonDB(**person.model_dump())
+        db.add(db_person)
+        await db.flush()
+        await db.refresh(db_person)
+        
+        return PersonResponse(
+            id=str(db_person.id),
+            name=db_person.name,
+            age=db_person.age,
+            email=db_person.email,
+            phone=db_person.phone
+        )
     
-    def get_all_persons(self) -> List[PersonResponse]:
+    async def get_all_persons(self, db: AsyncSession) -> List[PersonResponse]:
         """Get all persons from the database.
         
+        Args:
+            db: Database session
+            
         Returns:
             List[PersonResponse]: List of all persons
         """
-        return [PersonResponse(**person) for person in self._persons_db.values()]
+        result = await db.execute(select(PersonDB))
+        persons = result.scalars().all()
+        
+        return [
+            PersonResponse(
+                id=str(person.id),
+                name=person.name,
+                age=person.age,
+                email=person.email,
+                phone=person.phone
+            )
+            for person in persons
+        ]
     
-    def get_person_by_id(self, person_id: str) -> Optional[PersonResponse]:
+    async def get_person_by_id(self, db: AsyncSession, person_id: str) -> Optional[PersonResponse]:
         """Get a person by their ID.
         
         Args:
+            db: Database session
             person_id: The unique identifier of the person
             
         Returns:
             Optional[PersonResponse]: The person if found, None otherwise
         """
-        person_data = self._persons_db.get(person_id)
-        if person_data:
-            return PersonResponse(**person_data)
+        try:
+            person_uuid = UUID(person_id)
+        except ValueError:
+            return None
+        
+        result = await db.execute(select(PersonDB).where(PersonDB.id == person_uuid))
+        person = result.scalar_one_or_none()
+        
+        if person:
+            return PersonResponse(
+                id=str(person.id),
+                name=person.name,
+                age=person.age,
+                email=person.email,
+                phone=person.phone
+            )
         return None
     
-    def update_person(self, person_id: str, person_update: PersonUpdate) -> Optional[PersonResponse]:
+    async def update_person(
+        self, db: AsyncSession, person_id: str, person_update: PersonUpdate
+    ) -> Optional[PersonResponse]:
         """Update a person's information.
         
         Args:
+            db: Database session
             person_id: The unique identifier of the person
             person_update: Fields to update
             
         Returns:
             Optional[PersonResponse]: Updated person if found, None otherwise
         """
-        if person_id not in self._persons_db:
+        try:
+            person_uuid = UUID(person_id)
+        except ValueError:
             return None
         
-        stored_person = self._persons_db[person_id]
+        result = await db.execute(select(PersonDB).where(PersonDB.id == person_uuid))
+        person = result.scalar_one_or_none()
+        
+        if not person:
+            return None
+        
         update_data = person_update.model_dump(exclude_unset=True)
-        
-        # Update only the provided fields
         for field, value in update_data.items():
-            stored_person[field] = value
+            setattr(person, field, value)
         
-        self._persons_db[person_id] = stored_person
-        return PersonResponse(**stored_person)
+        await db.flush()
+        await db.refresh(person)
+        
+        return PersonResponse(
+            id=str(person.id),
+            name=person.name,
+            age=person.age,
+            email=person.email,
+            phone=person.phone
+        )
     
-    def delete_person(self, person_id: str) -> bool:
+    async def delete_person(self, db: AsyncSession, person_id: str) -> bool:
         """Delete a person by their ID.
         
         Args:
+            db: Database session
             person_id: The unique identifier of the person
             
         Returns:
             bool: True if person was deleted, False if not found
         """
-        if person_id in self._persons_db:
-            del self._persons_db[person_id]
+        try:
+            person_uuid = UUID(person_id)
+        except ValueError:
+            return False
+        
+        result = await db.execute(select(PersonDB).where(PersonDB.id == person_uuid))
+        person = result.scalar_one_or_none()
+        
+        if person:
+            await db.delete(person)
             return True
         return False
 
