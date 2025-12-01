@@ -61,6 +61,25 @@ Once the server is running, you can access:
 
 ### Available Routes
 
+#### 0. Healthcheck
+- **GET** `/health`
+- **Response**: Service health status with timestamp (200)
+
+Example:
+```bash
+curl -X GET "http://127.0.0.1:8000/health"
+```
+
+Response:
+```json
+{
+  "status": "healthy",
+  "service": "Person REST API",
+  "version": "1.0.0",
+  "timestamp": "2025-12-01T12:05:30.123456"
+}
+```
+
 #### 1. Create a Person
 - **POST** `/persons`
 - **Body**: Person object (without ID)
