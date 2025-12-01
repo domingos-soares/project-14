@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 Start the FastAPI server with:
 ```bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 The server will start at `http://127.0.0.1:8000`
@@ -124,10 +124,32 @@ curl -X DELETE "http://127.0.0.1:8000/persons/{person_id}"
 
 ```
 project-14/
-├── main.py           # FastAPI application with all routes
-├── requirements.txt  # Python dependencies
-└── README.md        # This file
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI application setup
+│   ├── config.py            # Application configuration
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── person.py        # Pydantic models for Person
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   └── person.py        # Person API endpoints
+│   └── services/
+│       ├── __init__.py
+│       └── person_service.py # Business logic layer
+├── requirements.txt         # Python dependencies
+├── main.py.old             # Original monolithic file (backup)
+└── README.md               # This file
 ```
+
+### Architecture
+
+The application follows a **layered architecture**:
+
+- **Models** (`app/models/`) - Pydantic models for data validation and serialization
+- **Services** (`app/services/`) - Business logic and data management
+- **Routes** (`app/routes/`) - API endpoints that use services
+- **Config** (`app/config.py`) - Centralized configuration management
 
 ## Development
 
