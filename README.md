@@ -8,85 +8,38 @@ A RESTful API built with FastAPI for managing Person objects with full CRUD oper
 - **READ** - Get all persons or a specific person by ID
 - **UPDATE** - Update person details
 - **DELETE** - Remove persons from the database
-- **PostgreSQL database** for persistent data storage
-- **Database healthcheck** endpoint for monitoring
-- **Async operations** with SQLAlchemy 2.0 and asyncpg
+- In-memory storage for quick development and testing
 - Auto-generated interactive API documentation (Swagger UI)
 - Data validation with Pydantic
-- Docker support for easy database setup
 
 ## Prerequisites
 
 - Python 3.8 or higher
 - pip (Python package manager)
-- PostgreSQL 12+ (or Docker to run PostgreSQL in a container)
-- Docker and Docker Compose (optional, for easy database setup)
 
 ## Installation
 
-### Option 1: Using Docker (Recommended)
-
 1. Clone this repository or navigate to the project directory
 
-2. Start PostgreSQL using Docker Compose:
-```bash
-docker-compose up -d
-```
-
-3. Create a virtual environment (recommended):
+2. Create a virtual environment (recommended):
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-4. Install dependencies:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
-
-5. (Optional) Copy the environment file and customize:
-```bash
-cp .env.example .env
-```
-
-### Option 2: Using Local PostgreSQL
-
-1. Install PostgreSQL on your system
-
-2. Create a database:
-```bash
-createdb person_db
-```
-
-3. Create a virtual environment and install dependencies:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-4. Configure database connection:
-   - Copy `.env.example` to `.env`
-   - Update `DATABASE_URL` with your PostgreSQL credentials:
-   ```
-   DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/person_db
-   ```
 
 ## Running the Server
 
-1. Ensure PostgreSQL is running (via Docker or locally)
-
-2. Start the FastAPI server:
+Start the FastAPI server with:
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The server will:
-- Start at `http://127.0.0.1:8000`
-- Automatically create database tables on startup
-- Verify database connectivity
-
-**Note**: The database tables are created automatically when the application starts. You don't need to run migrations manually.
+The server will start at `http://127.0.0.1:8000`
 
 ## API Documentation
 
@@ -110,7 +63,7 @@ Once the server is running, you can access:
 
 #### 0. Healthcheck
 - **GET** `/health`
-- **Response**: Service health status with database connectivity (200)
+- **Response**: Service health status with timestamp (200)
 
 Example:
 ```bash
@@ -123,15 +76,9 @@ Response:
   "status": "healthy",
   "service": "Person REST API",
   "version": "1.0.0",
-  "timestamp": "2025-12-01T12:05:30.123456",
-  "database": {
-    "status": "healthy",
-    "database": "connected"
-  }
+  "timestamp": "2025-12-01T12:05:30.123456"
 }
 ```
-
-**Note**: If the database is unavailable, the overall status will be "unhealthy" and database details will include error information.
 
 #### 1. Create a Person
 - **POST** `/persons`
@@ -200,69 +147,32 @@ project-14/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI application setup
 │   ├── config.py            # Application configuration
-│   ├── db/
-│   │   ├── __init__.py
-│   │   ├── base.py          # SQLAlchemy declarative base
-│   │   ├── database.py      # Database connection & session
-│   │   └── models.py        # SQLAlchemy database models
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── person.py        # Pydantic models for validation
+│   │   └── person.py        # Pydantic models for Person
 │   ├── routes/
 │   │   ├── __init__.py
 │   │   └── person.py        # Person API endpoints
 │   └── services/
 │       ├── __init__.py
 │       └── person_service.py # Business logic layer
-├── docker-compose.yml       # Docker setup for PostgreSQL
-├── .env.example            # Environment variables template
-├── requirements.txt        # Python dependencies
-├── main.py.old            # Original monolithic file (backup)
-└── README.md              # This file
+├── requirements.txt         # Python dependencies
+├── main.py.old             # Original monolithic file (backup)
+└── README.md               # This file
 ```
 
 ### Architecture
 
-The application follows a **layered architecture** with async database support:
+The application follows a **layered architecture**:
 
-- **Database** (`app/db/`) - SQLAlchemy models, async engine, and session management
 - **Models** (`app/models/`) - Pydantic models for data validation and serialization
-- **Services** (`app/services/`) - Business logic with async database operations
-- **Routes** (`app/routes/`) - API endpoints with dependency injection
-- **Config** (`app/config.py`) - Centralized configuration with environment variables
+- **Services** (`app/services/`) - Business logic and data management
+- **Routes** (`app/routes/`) - API endpoints that use services
+- **Config** (`app/config.py`) - Centralized configuration management
 
 ## Development
 
-### Database
-
-The application uses **PostgreSQL** for data persistence with the following features:
-- **Async operations** using SQLAlchemy 2.0 and asyncpg
-- **Automatic table creation** on application startup
-- **UUID-based primary keys** for better scalability
-- **Database health monitoring** through the `/health` endpoint
-
-### Environment Variables
-
-Configure the application using environment variables in `.env`:
-- `DATABASE_URL` - PostgreSQL connection string
-- `DATABASE_ECHO` - Enable SQL query logging (default: False)
-- `DEBUG` - Enable debug mode (default: False)
-
-### Docker Commands
-
-```bash
-# Start PostgreSQL
-docker-compose up -d
-
-# Stop PostgreSQL
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Remove all data (destructive!)
-docker-compose down -v
-```
+The application uses in-memory storage, so all data will be lost when the server restarts. For production use, consider integrating a database like PostgreSQL, MongoDB, or SQLite.
 
 ## Testing
 

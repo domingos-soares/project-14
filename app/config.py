@@ -11,10 +11,6 @@ class Settings(BaseSettings):
     description: str = "A RESTful API for managing Person objects with full CRUD operations"
     debug: bool = False
     
-    # Database settings
-    database_url: str = "postgresql+asyncpg://localhost:5432/person_db"
-    database_echo: bool = False
-    
     class Config:
         env_file = ".env"
 

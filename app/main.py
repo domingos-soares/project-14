@@ -1,25 +1,11 @@
 """Main FastAPI application."""
 
 from datetime import datetime
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes.person import router as person_router
-from app.db import init_db, check_db_health
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan events.
-    
-    Handles startup and shutdown events.
-    """
-    # Startup: Initialize database
-    await init_db()
-    yield
-    # Shutdown: Cleanup if needed
 
 
 def create_app() -> FastAPI:
@@ -32,8 +18,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description=settings.description,
-        debug=settings.debug,
-        lifespan=lifespan
+        debug=settings.debug
     )
     
     # Add CORS middleware
@@ -70,19 +55,12 @@ def create_app() -> FastAPI:
     # Healthcheck endpoint
     @app.get("/health", tags=["Health"])
     async def healthcheck():
-        """Healthcheck endpoint for monitoring and load balancers.
-        
-        Returns service status including database connectivity.
-        """
-        db_health = await check_db_health()
-        overall_status = "healthy" if db_health["status"] == "healthy" else "unhealthy"
-        
+        """Healthcheck endpoint for monitoring and load balancers."""
         return {
-            "status": overall_status,
+            "status": "healthy",
             "service": settings.app_name,
             "version": settings.app_version,
-            "timestamp": datetime.utcnow().isoformat(),
-            "database": db_health
+            "timestamp": datetime.utcnow().isoformat()
         }
     
     return app

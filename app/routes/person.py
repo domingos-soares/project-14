@@ -1,12 +1,10 @@
 """Person routes/endpoints."""
 
 from typing import List
-from fastapi import APIRouter, HTTPException, status, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, status
 
 from app.models.person import Person, PersonResponse, PersonUpdate
 from app.services.person_service import person_service
-from app.db import get_db
 
 router = APIRouter(prefix="/persons", tags=["Persons"])
 
@@ -17,17 +15,16 @@ router = APIRouter(prefix="/persons", tags=["Persons"])
     status_code=status.HTTP_201_CREATED,
     summary="Create a new person"
 )
-async def create_person(person: Person, db: AsyncSession = Depends(get_db)):
+async def create_person(person: Person):
     """Create a new person.
     
     Args:
         person: Person data to create
-        db: Database session
         
     Returns:
         PersonResponse: Created person with generated ID
     """
-    return await person_service.create_person(db, person)
+    return person_service.create_person(person)
 
 
 @router.get(
@@ -35,16 +32,13 @@ async def create_person(person: Person, db: AsyncSession = Depends(get_db)):
     response_model=List[PersonResponse],
     summary="Get all persons"
 )
-async def get_all_persons(db: AsyncSession = Depends(get_db)):
+async def get_all_persons():
     """Get all persons from the database.
     
-    Args:
-        db: Database session
-        
     Returns:
         List[PersonResponse]: List of all persons
     """
-    return await person_service.get_all_persons(db)
+    return person_service.get_all_persons()
 
 
 @router.get(
@@ -52,12 +46,11 @@ async def get_all_persons(db: AsyncSession = Depends(get_db)):
     response_model=PersonResponse,
     summary="Get a specific person"
 )
-async def get_person(person_id: str, db: AsyncSession = Depends(get_db)):
+async def get_person(person_id: str):
     """Get a specific person by their ID.
     
     Args:
         person_id: The unique identifier of the person
-        db: Database session
         
     Returns:
         PersonResponse: The requested person
@@ -65,7 +58,7 @@ async def get_person(person_id: str, db: AsyncSession = Depends(get_db)):
     Raises:
         HTTPException: 404 if person not found
     """
-    person = await person_service.get_person_by_id(db, person_id)
+    person = person_service.get_person_by_id(person_id)
     if not person:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -79,13 +72,12 @@ async def get_person(person_id: str, db: AsyncSession = Depends(get_db)):
     response_model=PersonResponse,
     summary="Update a person"
 )
-async def update_person(person_id: str, person_update: PersonUpdate, db: AsyncSession = Depends(get_db)):
+async def update_person(person_id: str, person_update: PersonUpdate):
     """Update a person's information.
     
     Args:
         person_id: The unique identifier of the person
         person_update: Fields to update
-        db: Database session
         
     Returns:
         PersonResponse: Updated person
@@ -100,7 +92,7 @@ async def update_person(person_id: str, person_update: PersonUpdate, db: AsyncSe
             detail="No fields to update"
         )
     
-    updated_person = await person_service.update_person(db, person_id, person_update)
+    updated_person = person_service.update_person(person_id, person_update)
     if not updated_person:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -114,17 +106,16 @@ async def update_person(person_id: str, person_update: PersonUpdate, db: AsyncSe
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a person"
 )
-async def delete_person(person_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_person(person_id: str):
     """Delete a person by their ID.
     
     Args:
         person_id: The unique identifier of the person
-        db: Database session
         
     Raises:
         HTTPException: 404 if person not found
     """
-    success = await person_service.delete_person(db, person_id)
+    success = person_service.delete_person(person_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
